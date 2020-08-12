@@ -34,94 +34,262 @@ class EventUserConstraints:
                               (event_id, user_id, constraint_user_id))
 
     def get_all_rejected_users_per_event_user_pair(self, event_id, user_id):
-        return self.database.execute_and_fetch('SELECT constraint_user_id FROM ' + self.db_name +
-                                        ' WHERE (event_id, user_id) = (?, ?)', (event_id, user_id))[0]
+        res = self.database.execute_and_fetch('SELECT constraint_user_id FROM ' + self.db_name +
+                                        ' WHERE (event_id, user_id) = (?, ?)', (event_id, user_id))
+        if not len(res):
+            return []
+        else:
+            return [i[0] for i in res]
 
     def constraint_exists(self, event_id, user_id, constraint_user_id):
         res = self.database.execute_and_fetch('SELECT event_id FROM ' + self.db_name +
                                               ' WHERE (event_id, user_id, constraint_user_id) = (?, ?, ?)',
                                               (event_id, user_id, constraint_user_id))
-        return ((not res) == False)
+        return (not res) == False
+
+# --------------------------------------------------------------------------------
 
 
-def test_event_user_constraints():
-    import numpy as np
+def add_constraint_test(db_filename, events_table, users_table, event_user_constraint_db_name,
+                                    event_id, user_id, constraint_user_id):
+    if events_table.get_name(event_id) == '':
+        print('add_constraint_test: event ID is not a member of Events table!')
+        return False
+    if users_table.get_user(user_id)['login'] == '':
+        print('add_constraint_test: user ID is not a member of Users table!')
+        return False
+    if users_table.get_user(constraint_user_id)['login'] == '':
+        print('add_constraint_test: constraint user ID is not a member of Users table!')
+        return False
 
+    event_user_constraint_table = \
+        EventUserConstraints(db_filename, events_table, users_table, event_user_constraint_db_name)
+    if constraint_user_id in event_user_constraint_table.get_all_rejected_users_per_event_user_pair(event_id, user_id):
+        print('add_constraint_test: such event-user pair already exists in the table, choose another one!')
+        return False
+
+    event_user_constraint_table.add_constraint(event_id, user_id, constraint_user_id)
+
+    if not event_user_constraint_table.constraint_exists(event_id, user_id, constraint_user_id):
+        print('add_constraint_test: addition was done incorrectly!')
+        return False
+    return True
+
+
+def get_all_rejected_users_per_event_user_pair_test(db_filename,
+                                                    events_table, users_table, event_user_constraint_db_name,
+                                                    event_id, user_id, expected_constraint_user_ids):
+    if events_table.get_name(event_id) == '':
+        print('get_all_rejected_users_per_event_user_pair_test: event ID is not a member of Events table!')
+        return False
+    if users_table.get_user(user_id)['login'] == '':
+        print('get_all_rejected_users_per_event_user_pair_test: user ID is not a member of Users table!')
+        return False
+    for constraint_user_id in expected_constraint_user_ids:
+        if users_table.get_user(constraint_user_id)['login'] == '':
+            print('get_all_rejected_users_per_event_user_pair_test: constraint user ID is not a member of Users table!')
+            return False
+
+    event_user_constraint_table = \
+        EventUserConstraints(db_filename, events_table, users_table, event_user_constraint_db_name)
+    all_constraint_users_per_pair = event_user_constraint_table.get_all_rejected_users_per_event_user_pair(event_id,
+                                                                                                           user_id)
+    for constraint_user_id in expected_constraint_user_ids:
+        if not constraint_user_id in all_constraint_users_per_pair:
+            print('get_all_rejected_users_per_event_user_pair_test: expected constraint user ID ' +
+                  str(constraint_user_id) + ' is not found in the list of constraint users!')
+            return False
+    return True
+
+
+def constraint_exists_test(db_filename, events_table, users_table, event_user_constraint_db_name,
+                           event_id, user_id, constraint_user_id, constraint_exisist):
+    if events_table.get_name(event_id) == '':
+        print('constraint_exists_test: event ID is not a member of Events table!')
+        return False
+    if users_table.get_user(user_id)['login'] == '':
+        print('constraint_exists_test: user ID is not a member of Users table!')
+        return False
+    if users_table.get_user(constraint_user_id)['login'] == '':
+        print('constraint_exists_test: constraint user ID is not a member of Users table!')
+        return False
+
+    event_user_constraint_table = \
+        EventUserConstraints(db_filename, events_table, users_table, event_user_constraint_db_name)
+
+    return event_user_constraint_table.constraint_exists(event_id, user_id, constraint_user_id) == constraint_exisist
+
+
+def delete_constraint_test(db_filename, events_table, users_table, event_user_constraint_db_name,
+                        event_id, user_id, constraint_user_id):
+    if events_table.get_name(event_id) == '':
+        print('delete_constraint_test: event ID is not a member of Events table!')
+        return False
+    if users_table.get_user(user_id)['login'] == '':
+        print('delete_constraint_test: user ID is not a member of Users table!')
+        return False
+    if users_table.get_user(constraint_user_id)['login'] == '':
+        print('delete_constraint_test: constraint user ID is not a member of Users table!')
+        return False
+
+    event_user_constraint_table = \
+        EventUserConstraints(db_filename, events_table, users_table, event_user_constraint_db_name)
+
+    if not (constraint_user_id in
+            event_user_constraint_table.get_all_rejected_users_per_event_user_pair(event_id, user_id)):
+        print('delete_constraint_test: such event-user pair doesn\'t exist in the table, choose another one!')
+        return False
+
+    event_user_constraint_table.delete_constraint(event_id, user_id, constraint_user_id)
+
+    if event_user_constraint_table.constraint_exists(event_id, user_id, constraint_user_id):
+        print('delete_constraint_test: deletion was done incorrectly!')
+        return False
+    return True
+
+
+def print_all_event_user_constraints(db_filename, events_table, users_table, db_name_event_user_constraints, prefix):
+    events_users_table = EventUserConstraints(db_filename, events_table, users_table, db_name_event_user_constraints)
+    database_wrapper = events_users_table.get_database_wrapper()
+    database.print_all_database(database_wrapper, db_name_event_user_constraints, prefix)
+
+
+def run_all_event_user_constraints_tests():
     db_filename = '../databases/santaDb.db'
     db_name_events = 'events'
     db_name_users = 'santaUsers'
     db_name_event_user_constraints = 'eventUserConstraints'
-    events_table = events.Events(db_filename, db_name_events)
+
+    #database.delete_table(db_filename, db_name_users)
+    #database.delete_table(db_filename, db_name_events)
+    #database.delete_table(db_filename, db_name_event_user_constraints)
+
+    user_name = 'Katya'
+    login = 'kitekat'
+    psw_hash = 123
+    email = 'abc@dot.com'
+
+    user_name_constraints = ['Jenya', 'Aliska']
+    login_constraints = ['fckrsns', 'meow']
+    psw_hash_constraints = [456, 789]
+    email_constraints = ['def@dot.com', 'meow@purr.nyaha']
+
+    non_existed_user_name_constraint = 'Vasya Pipkin'
+    non_existed_login_constraint = 'konechnovasya'
+    non_existed_psw_hash_constraint = 333
+    non_existed_email_constraint = 'vasya.pipkin@dot.com'
+
+    event_name = 'NY2020'
+
+    user_id = users.add_user_test(db_filename, db_name_users, user_name, login, psw_hash, email)
+
+    user_id_constraints = []
+    for i in range(len(user_name_constraints)):
+        user_id_constraint = users.add_user_test(db_filename, db_name_users, user_name_constraints[i],
+                                                 login_constraints[i], psw_hash_constraints[i], email_constraints[i])
+        user_id_constraints.append(user_id_constraint)
+
+    non_existed_user_id_constraint = users.add_user_test(db_filename, db_name_users,
+                                                         non_existed_user_name_constraint, non_existed_login_constraint,
+                                                         non_existed_psw_hash_constraint, non_existed_email_constraint)
+
+    event_id = events.add_event_test(db_filename, db_name_events, event_name)
+
+    users.print_all_users_database(db_filename, db_name_users, '\nusers database:')
+    events.print_all_events_database(db_filename, db_name_events, '\nevents database:')
+
     users_table = users.Users(db_filename, db_name_users)
+    events_table = events.Events(db_filename, db_name_events)
 
-    event_user_constraints_table = EventUserConstraints(db_filename, events_table, users_table,
-                                                        db_name_event_user_constraints)
+    for user_id_constraint in user_id_constraints:
+        result = add_constraint_test(db_filename, events_table, users_table, db_name_event_user_constraints,
+                                     event_id, user_id, user_id_constraint)
+        if not result:
+            print('error in adding constraint user ID' + str(user_id_constraint))
+            for user_id_constraint_to_delete in user_id_constraints:
+                delete_constraint_test(db_filename, events_table, users_table, db_name_event_user_constraints, event_id,
+                                       user_id, user_id_constraint_to_delete)  # the result is not important now
+            users.delete_user_test(db_filename, db_name_users, user_id)
+            users.delete_user_test(db_filename, db_name_users, non_existed_user_id_constraint)
+            for user_id_constraint_to_delete in user_id_constraints:
+                users.delete_user_test(db_filename, db_name_users, user_id_constraint_to_delete)
+            events.delete_event_test(db_filename, db_name_events, event_id)
+            return
+    print_all_event_user_constraints(db_filename, events_table, users_table, db_name_event_user_constraints,
+                                     '\ndatabase after adding all constraints:')
 
-    user_names = np.array(['Katya', 'Jenya', 'Aliska'])
-    logins = np.array(['kitekat', 'meow', 'purr'])
-    psw_hashes = np.array([123, 456, 789])
-    emails = np.array(['abc@dot.com', 'def@dot.com', 'nyaha@mew.com'])
-    for i in np.arange(0, user_names.size):
-        users_table.add_user(user_names[i], logins[i], int(psw_hashes[i]), emails[i])
-        database.print_all_database(users_table.get_database_wrapper(), db_name_users,
-                                    '\nusers database after adding a user:')
-    print('\n')
+    result = get_all_rejected_users_per_event_user_pair_test(db_filename,
+                                                             events_table, users_table, db_name_event_user_constraints,
+                                                             event_id, user_id, user_id_constraints)
+    if not result:
+        print('error in getting all constraint users!')
+        for user_id_constraint_to_delete in user_id_constraints:
+            delete_constraint_test(db_filename, events_table, users_table, db_name_event_user_constraints, event_id,
+                                   user_id, user_id_constraint_to_delete)  # the result is not important now
+        users.delete_user_test(db_filename, db_name_users, user_id)
+        users.delete_user_test(db_filename, db_name_users, non_existed_user_id_constraint)
+        for user_id_constraint_to_delete in user_id_constraints:
+            users.delete_user_test(db_filename, db_name_users, user_id_constraint_to_delete)
+        events.delete_event_test(db_filename, db_name_events, event_id)
+        return
+    print_all_event_user_constraints(db_filename, events_table, users_table, db_name_event_user_constraints,
+                                     '\ndatabase after getting all constraint users:')
 
-    user_ids = np.array([])
-    for login in logins:
-        user_id = users_table.get_user_id(login)
-        print('id for login ' + str(login) + ' is ' + str(user_id))
-        user_ids = np.append(user_ids, user_id)
+    for user_id_constraint in user_id_constraints:
+        result = constraint_exists_test(db_filename, events_table, users_table, db_name_event_user_constraints,
+                                        event_id, user_id, user_id_constraint, True)
+        if not result:
+            print('error in checking if constraint user ID' + str(user_id_constraint) + ' exists!')
+            for user_id_constraint_to_delete in user_id_constraints:
+                delete_constraint_test(db_filename, events_table, users_table, db_name_event_user_constraints, event_id,
+                                       user_id, user_id_constraint_to_delete)  # the result is not important now
+            users.delete_user_test(db_filename, db_name_users, user_id)
+            users.delete_user_test(db_filename, db_name_users, non_existed_user_id_constraint)
+            for user_id_constraint_to_delete in user_id_constraints:
+                users.delete_user_test(db_filename, db_name_users, user_id_constraint_to_delete)
+            events.delete_event_test(db_filename, db_name_events, event_id)
+            return
 
-    event_names = np.array(['NY2019', 'NY2020'])
-    for event_name in event_names:
-        events_table.add_event(event_name)
-        database.print_all_database(events_table.get_database_wrapper(), db_name_events,
-                                    '\nevents database after adding an event:')
-    print('\n')
+    result = constraint_exists_test(db_filename, events_table, users_table, db_name_event_user_constraints,
+                                    event_id, user_id, non_existed_user_id_constraint, False)
+    if not result:
+        print('error in checking if constraint user ID' + str(user_id_constraint) + ' exists!')
+        for user_id_constraint_to_delete in user_id_constraints:
+            delete_constraint_test(db_filename, events_table, users_table, db_name_event_user_constraints, event_id,
+                                   user_id, user_id_constraint_to_delete)  # the result is not important now
+        users.delete_user_test(db_filename, db_name_users, user_id)
+        users.delete_user_test(db_filename, db_name_users, non_existed_user_id_constraint)
+        for user_id_constraint_to_delete in user_id_constraints:
+            users.delete_user_test(db_filename, db_name_users, user_id_constraint_to_delete)
+        events.delete_event_test(db_filename, db_name_events, event_id)
+        return
 
-    event_ids = np.array([])
-    for event_name in event_names:
-        event_id = events_table.get_event_id(event_name)
-        print('id for event name ' + str(event_name) + ' is ' + str(event_id))
-        event_ids = np.append(event_ids, event_id)
+    print_all_event_user_constraints(db_filename, events_table, users_table, db_name_event_user_constraints,
+                                     '\ndatabase after checking if all constraint users exist:')
 
-    event_user_constraints_table.add_constraint(event_ids[0], user_ids[0], user_ids[1])
-    database.print_all_database(event_user_constraints_table.get_database_wrapper(), db_name_event_user_constraints,
-                                '\neventConstraints database with first added constraint:')
+    for user_id_constraint in user_id_constraints:
+        result = delete_constraint_test(db_filename, events_table, users_table, db_name_event_user_constraints,
+                                        event_id, user_id, user_id_constraint)
+        if not result:
+            print('error in deleting constraint with ID' + str(user_id_constraint))
+            for user_id_constraint_to_delete in user_id_constraints:
+                delete_constraint_test(db_filename, events_table, users_table, db_name_event_user_constraints, event_id,
+                                       user_id, user_id_constraint_to_delete)  # the result is not important now
+            users.delete_user_test(db_filename, db_name_users, user_id)
+            users.delete_user_test(db_filename, db_name_users, non_existed_user_id_constraint)
+            for user_id_constraint_to_delete in user_id_constraints:
+                users.delete_user_test(db_filename, db_name_users, user_id_constraint_to_delete)
+            events.delete_event_test(db_filename, db_name_events, event_id)
+            return
+    print_all_event_user_constraints(db_filename, events_table, users_table, db_name_event_user_constraints,
+                                     '\ndatabase after deleting all constraints:')
 
-    event_user_constraints_table.add_constraint(event_ids[1], user_ids[1], user_ids[2])
-    database.print_all_database(event_user_constraints_table.get_database_wrapper(), db_name_event_user_constraints,
-                                '\neventConstraints database with second added constraint:')
-
-    print('\nprint all constraints for event ID ' + str(event_ids[1]) + ' and user ID ' + str(user_ids[1]) + ':')
-    print(event_user_constraints_table.get_all_rejected_users_per_event_user_pair(event_ids[1], user_ids[1]))
-
-    print('\nDoes event ID ' + str(event_ids[1]) + ', user ID ' + str(user_ids[1]) + ', constraint user ID ' + str(
-        user_ids[2]) + ' exist?')
-    print(str(event_user_constraints_table.constraint_exists(event_ids[0], user_ids[0], user_ids[1])))
-
-    event_user_constraints_table.delete_constraint(event_ids[1], user_ids[1], user_ids[2])
-    database.print_all_database(event_user_constraints_table.get_database_wrapper(), db_name_event_user_constraints,
-                                '\neventConstraints database with second deleted constraint:')
-
-    print('\nDoes event ID ' + str(event_ids[1]) + ', user ID ' + str(user_ids[1]) + ', constraint user ID ' + str(
-        user_ids[2]) + ' exist?')
-    print(str(event_user_constraints_table.constraint_exists(event_ids[1], user_ids[1], user_ids[2])))
-
-    event_user_constraints_table.delete_constraint(event_ids[0], user_ids[0], user_ids[1])
-    database.print_all_database(event_user_constraints_table.get_database_wrapper(), db_name_event_user_constraints,
-                                '\neventConstraints database with first deleted constraint:')
-
-    for user_id in user_ids:
-        users_table.delete_user(int(user_id))
-    database.print_all_database(users_table.get_database_wrapper(), db_name_users,
-                                'users database after deleting the user:')
-    for event_id in event_ids:
-        events_table.delete_event(int(event_id))
-    database.print_all_database(events_table.get_database_wrapper(), db_name_events,
-                                'events database after deleting the event:')
+    users.delete_user_test(db_filename, db_name_users, user_id)
+    users.delete_user_test(db_filename, db_name_users, non_existed_user_id_constraint)
+    for user_id_constraint in user_id_constraints:
+        users.delete_user_test(db_filename, db_name_users, user_id_constraint)
+    events.delete_event_test(db_filename, db_name_events, event_id)
 
 
 if __name__ == '__main__':
-    test_event_user_constraints()
+    run_all_event_user_constraints_tests()

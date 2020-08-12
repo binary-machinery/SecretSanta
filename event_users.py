@@ -96,6 +96,13 @@ def add_event_user_pair_test(db_filename, events_table, users_table, events_user
 
 
 def update_user_admin_rights_test(db_filename, events_table, users_table, events_users_db_name, event_id, user_id):
+    if events_table.get_name(event_id) == '':
+        print('add_event_user_pair_test: event ID is not a member of Events table!')
+        return False
+    if users_table.get_user(user_id)['login'] == '':
+        print('add_event_user_pair_test: user ID is not a member of Users table!')
+        return False
+
     events_users_table = EventUsers(db_filename, events_table, users_table, events_users_db_name)
     if not (user_id in events_users_table.get_all_users_per_event(event_id)):
         print('update_user_admin_rights_test: such event-user pair does not exist in the table!')
@@ -111,9 +118,16 @@ def update_user_admin_rights_test(db_filename, events_table, users_table, events
 
 def assign_receiver_test(db_filename, events_table, users_table, events_users_db_name, event_id, user_id,
                          receiver_user_id):
+    if events_table.get_name(event_id) == '':
+        print('add_event_user_pair_test: event ID is not a member of Events table!')
+        return False
+    if users_table.get_user(user_id)['login'] == '':
+        print('add_event_user_pair_test: user ID is not a member of Users table!')
+        return False
     if users_table.get_user(receiver_user_id)['login'] == '':
         print('assign_receiver_test: receiver user ID is not a member of Users table!')
         return False
+
     events_users_table = EventUsers(db_filename, events_table, users_table, events_users_db_name)
     if not (user_id in events_users_table.get_all_users_per_event(event_id)):
         print('assign_receiver_test: such event-user pair does not exist in the table!')
@@ -127,6 +141,13 @@ def assign_receiver_test(db_filename, events_table, users_table, events_users_db
 
 
 def delete_event_user_pair_test(db_filename, events_table, users_table, events_users_db_name, event_id, user_id):
+    if events_table.get_name(event_id) == '':
+        print('add_event_user_pair_test: event ID is not a member of Events table!')
+        return False
+    if users_table.get_user(user_id)['login'] == '':
+        print('add_event_user_pair_test: user ID is not a member of Users table!')
+        return False
+
     events_users_table = EventUsers(db_filename, events_table, users_table, events_users_db_name)
     if not (user_id in events_users_table.get_all_users_per_event(event_id)):
         print('delete_event_user_pair_test: such event-user pair does not exist in the table!')
@@ -156,9 +177,9 @@ def run_all_event_users_tests():
     db_name_users = 'santaUsers'
     db_name_event_users = 'eventUsers'
 
-    database.delete_table(db_filename, db_name_users)
-    database.delete_table(db_filename, db_name_events)
-    database.delete_table(db_filename, db_name_event_users)
+    #database.delete_table(db_filename, db_name_users)
+    #database.delete_table(db_filename, db_name_events)
+    #database.delete_table(db_filename, db_name_event_users)
 
     user_name = 'Katya'
     login = 'kitekat'
@@ -269,6 +290,10 @@ def run_all_event_users_tests():
         return
     print_all_event_users_database(db_filename, events_table, users_table, db_name_event_users,
                                    '\ndatabase after deleting second event-user pair:')
+
+    users.delete_user_test(db_filename, db_name_users, user_id)
+    users.delete_user_test(db_filename, db_name_users, user_id_receiver)
+    events.delete_event_test(db_filename, db_name_events, event_id)
 
 
 if __name__ == '__main__':
