@@ -21,7 +21,7 @@ class Users:
         self.database = database.DatabaseWrapper(db_filename)
         self.database.execute('CREATE TABLE IF NOT EXISTS users ('
                               'id INTEGER PRIMARY KEY, '
-                              'email TEXT, '
+                              'email TEXT UNIQUE, '
                               'name TEXT, '
                               'password_hash TEXT)')
 
