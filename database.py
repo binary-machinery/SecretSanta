@@ -3,20 +3,22 @@ import sqlite3
 
 class DatabaseWrapper:
     def __init__(self, filename):
+        self.filename = filename
         self.connection = sqlite3.Connection(filename)
         self.cursor = self.connection.cursor()
 
-    def __del__(self):
-        self.connection.commit()
-        self.connection.close()
-
     def execute(self, *args, **kwargs):
-        self.cursor.execute(*args, **kwargs)
-        self.connection.commit()
+        with sqlite3.Connection(self.filename) as connection:
+            cursor = connection.cursor()
+            cursor.execute(*args, **kwargs)
+            connection.commit()
 
     def execute_and_fetch(self, *args, **kwargs):
-        self.cursor.execute(*args, **kwargs)
-        return self.cursor.fetchall()
+        with sqlite3.Connection(self.filename) as connection:
+            cursor = connection.cursor()
+            cursor.execute(*args, **kwargs)
+            connection.commit()
+            return cursor.fetchall()
 
 
 def print_all_database(db, db_name, text=''):
