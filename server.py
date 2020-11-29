@@ -1,26 +1,42 @@
+import flask
 from flask import Flask
 from flask import Response
 from flask import request
 from flask_cors import CORS
-
+from flask_login import LoginManager, login_user, current_user, logout_user
 from passlib.hash import sha256_crypt
 
 from users import Users
 
-server = Flask(__name__)
-cors = CORS(server)
+app = Flask(__name__)
+app.secret_key = 'lgnqgblksgnsgnleng'
+
+# cors = CORS(app,
+#             origins=["http://localhost:8080"],
+#             allow_headers=["content-type"],
+#             supports_credentials=True)
+cors = CORS(app)
+
+login_manager = LoginManager()
+login_manager.init_app(app)
 
 db_filename = "./secret_santa.sqlite"
 
 users = Users(db_filename)
 
 
-@server.route("/ping", methods=["GET"])
+@login_manager.user_loader
+def load_user(user_id):
+    print("load_user: " + str(user_id))
+    return users.get_user_by_id(user_id)
+
+
+@app.route("/ping", methods=["GET", "POST"])
 def handle_ping():
     return Response("Pong", status=200)
 
 
-@server.route("/registration", methods=["POST"])
+@app.route("/registration", methods=["POST"])
 def handle_registration():
     email = request.form["email"]
     password = request.form["password"]
@@ -29,5 +45,40 @@ def handle_registration():
     return Response(status=200)
 
 
+@app.route("/login", methods=["POST"])
+def handle_login():
+    if current_user.is_authenticated:
+        print("Already authenticated: " + str(current_user))
+        return flask.redirect("http://localhost:8080/")
+    email = request.form["email"]
+    password = request.form["password"]
+    user = users.get_user_by_email(email)
+    if user and sha256_crypt.verify(password, user.password_hash):
+        print(login_user(user, remember=True))
+        print(current_user)
+        return flask.redirect("http://localhost:8080/")
+    return Response("Wrong user or password", status=403)
+
+
+@app.route("/logout", methods=["POST"])
+# @login_required
+def handle_logout():
+    print("Logout user: " + str(current_user))
+    if current_user.is_authenticated:
+        print("User found: " + str(current_user))
+        logout_user()
+    print("After logout: " + str(current_user))
+    return flask.redirect("http://localhost:8080/", 200)
+
+
+@app.route("/login-test", methods=["GET", "POST"])
+# @login_required
+def handle_test():
+    print("handle_test")
+    print(current_user)
+    print("handle_test quit")
+    return Response(status=200)
+
+
 if __name__ == "__main__":
-    server.run(host="0.0.0.0", port=3000)
+    app.run(host="0.0.0.0", port=3000)
