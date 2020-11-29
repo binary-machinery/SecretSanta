@@ -3,7 +3,7 @@ from flask import Flask
 from flask import Response
 from flask import request
 from flask_cors import CORS
-from flask_login import LoginManager, login_user, current_user, logout_user
+from flask_login import LoginManager, login_user, current_user, logout_user, login_required
 from passlib.hash import sha256_crypt
 
 from users import Users
@@ -11,11 +11,7 @@ from users import Users
 app = Flask(__name__)
 app.secret_key = 'lgnqgblksgnsgnleng'
 
-# cors = CORS(app,
-#             origins=["http://localhost:8080"],
-#             allow_headers=["content-type"],
-#             supports_credentials=True)
-cors = CORS(app)
+cors = CORS(app, supports_credentials=True)
 
 login_manager = LoginManager()
 login_manager.init_app(app)
@@ -33,6 +29,7 @@ def load_user(user_id):
 
 @app.route("/ping", methods=["GET", "POST"])
 def handle_ping():
+    print(current_user)
     return Response("Pong", status=200)
 
 
@@ -61,7 +58,7 @@ def handle_login():
 
 
 @app.route("/logout", methods=["POST"])
-# @login_required
+@login_required
 def handle_logout():
     print("Logout user: " + str(current_user))
     if current_user.is_authenticated:
@@ -69,15 +66,6 @@ def handle_logout():
         logout_user()
     print("After logout: " + str(current_user))
     return flask.redirect("http://localhost:8080/", 200)
-
-
-@app.route("/login-test", methods=["GET", "POST"])
-# @login_required
-def handle_test():
-    print("handle_test")
-    print(current_user)
-    print("handle_test quit")
-    return Response(status=200)
 
 
 if __name__ == "__main__":
