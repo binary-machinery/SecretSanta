@@ -1,4 +1,5 @@
-import flask
+import json
+
 from flask import Flask
 from flask import Response
 from flask import request
@@ -23,13 +24,11 @@ users = Users(db_filename)
 
 @login_manager.user_loader
 def load_user(user_id):
-    print("load_user: " + str(user_id))
     return users.get_user_by_id(user_id)
 
 
 @app.route("/ping", methods=["GET", "POST"])
 def handle_ping():
-    print(current_user)
     return Response("Pong", status=200)
 
 
@@ -45,27 +44,31 @@ def handle_registration():
 @app.route("/login", methods=["POST"])
 def handle_login():
     if current_user.is_authenticated:
-        print("Already authenticated: " + str(current_user))
-        return flask.redirect("http://localhost:8080/")
+        return Response(status=200)
+
     email = request.form["email"]
     password = request.form["password"]
     user = users.get_user_by_email(email)
     if user and sha256_crypt.verify(password, user.password_hash):
-        print(login_user(user, remember=True))
-        print(current_user)
-        return flask.redirect("http://localhost:8080/")
+        login_user(user, remember=True)
+        return Response(status=200)
+
     return Response("Wrong user or password", status=403)
 
 
 @app.route("/logout", methods=["POST"])
 @login_required
 def handle_logout():
-    print("Logout user: " + str(current_user))
     if current_user.is_authenticated:
-        print("User found: " + str(current_user))
         logout_user()
-    print("After logout: " + str(current_user))
-    return flask.redirect("http://localhost:8080/", 200)
+    return Response(status=200)
+
+
+@app.route("/current-user", methods=["GET"])
+def handle_current_user():
+    if current_user.is_authenticated:
+        return Response(json.dumps(current_user.__dict__), status=200)
+    return Response(status=200)
 
 
 if __name__ == "__main__":
