@@ -48,12 +48,13 @@ def handle_login():
 
     email = request.form["email"]
     password = request.form["password"]
-    user = users.get_user_by_email(email)
-    if user and sha256_crypt.verify(password, user.password_hash):
+    password_hash = users.get_password_hash_by_email(email)
+    if password_hash and sha256_crypt.verify(password, password_hash):
+        user = users.get_user_by_email(email)
         login_user(user, remember=True)
         return Response(status=200)
 
-    return Response("Wrong user or password", status=403)
+    return Response("Wrong user or password", status=401)
 
 
 @app.route("/logout", methods=["POST"])

@@ -10,13 +10,11 @@ class User(UserMixin):
     user_id: int
     email: str
     name: str
-    password_hash: str
 
-    def __init__(self, user_id: int, email: str, name: str, password_hash: str):
+    def __init__(self, user_id: int, email: str, name: str):
         self.user_id = user_id
         self.email = email
         self.name = name
-        self.password_hash = password_hash
 
     def get_id(self):
         return self.user_id
@@ -47,18 +45,25 @@ class Users:
         self.database.execute('UPDATE users SET name = ? WHERE id = ?', (name, user_id))
 
     def get_user_by_id(self, user_id):
-        res = self.database.execute_and_fetch(
-            'SELECT id, email, name, password_hash FROM users WHERE id = ?',
+        res = self.database.execute_and_fetch_one(
+            'SELECT id, email, name FROM users WHERE id = ?',
             (user_id,)
         )
-        return User(res[0][0], res[0][1], res[0][2], res[0][3])
+        return User(res[0], res[1], res[2])
 
     def get_user_by_email(self, email):
-        res = self.database.execute_and_fetch(
-            'SELECT id, email, name, password_hash FROM users WHERE email = ?',
+        res = self.database.execute_and_fetch_one(
+            'SELECT id, email, name FROM users WHERE email = ?',
             (email,)
         )
-        return User(res[0][0], res[0][1], res[0][2], res[0][3])
+        return User(res[0], res[1], res[2])
+
+    def get_password_hash_by_email(self, email):
+        res = self.database.execute_and_fetch_one(
+            'SELECT password_hash FROM users WHERE email = ?',
+            (email,)
+        )
+        return res[0]
 
     def delete_user(self, user_id):
         self.database.execute('DELETE FROM users WHERE id = ?', (user_id,))
