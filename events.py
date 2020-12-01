@@ -39,6 +39,17 @@ class Events:
         )
         return Event(res[0], res[1], res[2], res[3])
 
+    def get_all_events_for_user(self, user_id):
+        res = self.database.execute_and_fetch(
+            'SELECT events.* '
+            'FROM events '
+            'LEFT JOIN event_users '
+            '    ON event_users.event_id = events.id '
+            'WHERE user_id = ?',
+            (user_id,)
+        )
+        return [Event(row[0], row[1], row[2], row[3]) for row in res]
+
     def set_name(self, event_id, name):
         self.database.execute('UPDATE events SET name = ? WHERE id = ?',
                               (name, event_id))

@@ -99,5 +99,12 @@ def handle_create_event():
     return Response(status=200)
 
 
+@app.route("/user-events", methods=["GET"])
+@login_required
+def handle_user_events():
+    data = [event.__dict__ for event in events.get_all_events_for_user(current_user.get_id())]
+    return Response(json.dumps(data), status=200)
+
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=3000)
