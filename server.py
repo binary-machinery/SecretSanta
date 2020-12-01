@@ -7,6 +7,7 @@ from flask_cors import CORS
 from flask_login import LoginManager, login_user, current_user, logout_user, login_required
 from passlib.hash import sha256_crypt
 
+from events import Events
 from users import Users
 
 app = Flask(__name__)
@@ -20,6 +21,7 @@ login_manager.init_app(app)
 db_filename = "./secret_santa.sqlite"
 
 users = Users(db_filename)
+events = Events(db_filename)
 
 
 @login_manager.user_loader
@@ -78,6 +80,14 @@ def handle_save_profile():
     data = request.json
     if "name" in data:
         users.set_name(current_user.get_id(), data["name"])
+    return Response(status=200)
+
+
+@app.route("/create-event", methods=["POST"])
+@login_required
+def handle_create_event():
+    data = request.json
+    events.add_event(data["name"], data["description"])
     return Response(status=200)
 
 

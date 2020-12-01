@@ -11,11 +11,6 @@ class User(UserMixin):
     email: str
     name: str
 
-    def __init__(self, user_id: int, email: str, name: str):
-        self.user_id = user_id
-        self.email = email
-        self.name = name
-
     def get_id(self):
         return self.user_id
 

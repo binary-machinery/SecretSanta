@@ -1,48 +1,50 @@
+from dataclasses import dataclass
+
 import database
 
 
+@dataclass
+class Event:
+    event_id: int
+    name: str
+    description: str
+
+
 class Events:
-    def __init__(self, db_filename, db_name):
+    def __init__(self, db_filename):
         self.database = database.DatabaseWrapper(db_filename)
-        self.db_name = db_name
-        self.database.execute('CREATE TABLE IF NOT EXISTS ' + db_name + ' ('
-            'event_id INTEGER PRIMARY KEY, '
-            'event_name TEXT)')
+        self.database.execute('CREATE TABLE IF NOT EXISTS events ('
+                              'id INTEGER PRIMARY KEY, '
+                              'name TEXT, '
+                              'description TEXT)')
 
     def get_database_wrapper(self):
         return self.database
 
-    def get_database_name(self):
-        return self.db_name
-
-    def add_event(self, event_name):
-        if event_name == '':
+    def add_event(self, name, description):
+        if name == '':
             print('Events::add_event: impossible to add an event with the empty name!')
             return
-        self.database.execute('INSERT INTO ' + self.db_name + ' (event_name) VALUES (?)', (event_name,))
+        self.database.execute('INSERT INTO events (name, description) VALUES (?, ?)', (name, description))
 
-    def get_event_id(self, event_name):
-        res = self.database.execute_and_fetch('SELECT event_id FROM ' + self.db_name +
-                                              ' WHERE event_name = ?', (event_name,))
-        if not len(res):
-            return -1
-        else:
-            return res[0][0]
+    def get_event_by_id(self, event_id):
+        res = self.database.execute_and_fetch_one(
+            'SELECT id, name, description FROM events WHERE id = ?',
+            (event_id,)
+        )
+        return Event(res[0], res[1], res[2])
 
-    def get_name(self, event_id):
-        res = self.database.execute_and_fetch('SELECT event_name FROM ' + self.db_name +
-                                              ' WHERE event_id = ?', (event_id,))
-        if not len(res):
-            return ''
-        else:
-            return res[0][0]
+    def set_name(self, event_id, name):
+        self.database.execute('UPDATE events SET name = ? WHERE id = ?',
+                              (name, event_id))
 
-    def update_name(self, event_id, event_name):
-        self.database.execute('UPDATE ' + self.db_name + ' SET event_name = ? WHERE event_id = ?',
-                              (event_name, event_id))
+    def set_description(self, event_id, description):
+        self.database.execute('UPDATE events SET description = ? WHERE id = ?',
+                              (description, event_id))
 
     def delete_event(self, event_id):
-        self.database.execute('DELETE FROM ' + self.db_name + ' WHERE event_id = ?', (event_id,))
+        self.database.execute('DELETE FROM events WHERE id = ?', (event_id,))
+
 
 # --------------------------------------------------------------------------------
 
@@ -76,11 +78,12 @@ def print_all_events_database(db_filename, db_name, prefix):
     database_wrapper = events.get_database_wrapper()
     database.print_all_database(database_wrapper, db_name, prefix)
 
+
 def run_all_event_tests():
     db_filename = '../databases/santaDb.db'
     db_name = 'events'
 
-    #database.delete_table(db_filename, db_name)
+    # database.delete_table(db_filename, db_name)
 
     print_all_events_database(db_filename, db_name, 'initial database:')
 
