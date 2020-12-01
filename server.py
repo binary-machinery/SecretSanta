@@ -35,9 +35,10 @@ def handle_ping():
 @app.route("/registration", methods=["POST"])
 def handle_registration():
     email = request.form["email"]
+    name = email.split("@")[0]
     password = request.form["password"]
     password_hash = sha256_crypt.hash(password)
-    users.add_user(email, password_hash)
+    users.add_user(email, name, password_hash)
     return Response(status=200)
 
 
@@ -60,8 +61,7 @@ def handle_login():
 @app.route("/logout", methods=["POST"])
 @login_required
 def handle_logout():
-    if current_user.is_authenticated:
-        logout_user()
+    logout_user()
     return Response(status=200)
 
 
@@ -69,6 +69,15 @@ def handle_logout():
 def handle_current_user():
     if current_user.is_authenticated:
         return Response(json.dumps(current_user.__dict__), status=200)
+    return Response(status=200)
+
+
+@app.route("/save-profile", methods=["POST"])
+@login_required
+def handle_save_profile():
+    data = request.json
+    if "name" in data:
+        users.set_name(current_user.get_id(), data["name"])
     return Response(status=200)
 
 

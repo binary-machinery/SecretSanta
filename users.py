@@ -32,14 +32,14 @@ class Users:
     def get_database_wrapper(self):
         return self.database
 
-    def add_user(self, email, password_hash):
+    def add_user(self, email, name, password_hash):
         if not email or not password_hash:
             print('Users::add_user: impossible to add a user with the empty parameter!')
             return
 
-        self.database.execute('INSERT INTO users (email, password_hash) '
-                              'VALUES (?, ?)',
-                              (email, password_hash))
+        self.database.execute('INSERT INTO users (email, name, password_hash) '
+                              'VALUES (?, ?, ?)',
+                              (email, name, password_hash))
 
     def set_name(self, user_id, name):
         self.database.execute('UPDATE users SET name = ? WHERE id = ?', (name, user_id))
