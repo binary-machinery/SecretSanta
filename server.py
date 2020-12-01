@@ -1,4 +1,6 @@
 import json
+import random
+import string
 
 from flask import Flask
 from flask import Response
@@ -91,7 +93,8 @@ def handle_save_profile():
 @login_required
 def handle_create_event():
     data = request.json
-    event_id = events.add_event(data["name"], data["description"])
+    invite_code = "".join(random.choices(string.ascii_letters + string.digits, k=10))
+    event_id = events.add_event(data["name"], data["description"], invite_code)
     event_users.add_event_user(event_id, current_user.get_id(), True)
     return Response(status=200)
 

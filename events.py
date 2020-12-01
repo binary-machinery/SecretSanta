@@ -8,6 +8,7 @@ class Event:
     event_id: int
     name: str
     description: str
+    invite_code: str
 
 
 class Events:
@@ -16,26 +17,27 @@ class Events:
         self.database.execute('CREATE TABLE IF NOT EXISTS events ('
                               'id INTEGER PRIMARY KEY, '
                               'name TEXT, '
-                              'description TEXT)')
+                              'description TEXT, '
+                              'invite_code TEXT)')
 
     def get_database_wrapper(self):
         return self.database
 
-    def add_event(self, name, description):
+    def add_event(self, name, description, invite_code):
         if name == '':
             print('Events::add_event: impossible to add an event with the empty name!')
             return
         return self.database.execute_and_get_inserted_id(
-            'INSERT INTO events (name, description) VALUES (?, ?)',
-            (name, description)
+            'INSERT INTO events (name, description, invite_code) VALUES (?, ?, ?)',
+            (name, description, invite_code)
         )
 
     def get_event_by_id(self, event_id):
         res = self.database.execute_and_fetch_one(
-            'SELECT id, name, description FROM events WHERE id = ?',
+            'SELECT id, name, description, invite_code FROM events WHERE id = ?',
             (event_id,)
         )
-        return Event(res[0], res[1], res[2])
+        return Event(res[0], res[1], res[2], res[3])
 
     def set_name(self, event_id, name):
         self.database.execute('UPDATE events SET name = ? WHERE id = ?',
