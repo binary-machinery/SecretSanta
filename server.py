@@ -41,6 +41,8 @@ def handle_registration():
     password = request.form["password"]
     password_hash = sha256_crypt.hash(password)
     users.add_user(email, name, password_hash)
+    user = users.get_user_by_email(email)
+    login_user(user, remember=True)
     return Response(status=200)
 
 
