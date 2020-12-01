@@ -25,7 +25,10 @@ class Events:
         if name == '':
             print('Events::add_event: impossible to add an event with the empty name!')
             return
-        self.database.execute('INSERT INTO events (name, description) VALUES (?, ?)', (name, description))
+        return self.database.execute_and_get_inserted_id(
+            'INSERT INTO events (name, description) VALUES (?, ?)',
+            (name, description)
+        )
 
     def get_event_by_id(self, event_id):
         res = self.database.execute_and_fetch_one(

@@ -32,9 +32,10 @@ class Users:
             print('Users::add_user: impossible to add a user with the empty parameter!')
             return
 
-        self.database.execute('INSERT INTO users (email, name, password_hash) '
-                              'VALUES (?, ?, ?)',
-                              (email, name, password_hash))
+        return self.database.execute_and_get_inserted_id(
+            'INSERT INTO users (email, name, password_hash) VALUES (?, ?, ?)',
+            (email, name, password_hash)
+        )
 
     def set_name(self, user_id, name):
         self.database.execute('UPDATE users SET name = ? WHERE id = ?', (name, user_id))

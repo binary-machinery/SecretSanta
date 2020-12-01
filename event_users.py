@@ -1,76 +1,72 @@
+from dataclasses import dataclass
+
+import database
 import events
 import users
-import database
+
+
+@dataclass
+class EventUser:
+    event_id: int
+    user_id: int
+    is_admin: bool
+    receiver_id: int
 
 
 class EventUsers:
-    def __init__(self, db_filename, events_table, users_table, db_name):
+    def __init__(self, db_filename):
         self.database = database.DatabaseWrapper(db_filename)
-        self.db_name = db_name
-        self.database.execute('CREATE TABLE IF NOT EXISTS ' + db_name + ' ('
-            'event_id INTEGER NOT NULL, '
-            'user_id INTEGER NOT NULL, '
-            'is_admin INTEGER, '
-            'receiver_id INTEGER, '
-            'FOREIGN KEY (event_id) REFERENCES ' + events_table.get_database_name() + '(event_id), '
-            'FOREIGN KEY (user_id) REFERENCES ' + users_table.get_database_name() + '(user_id), '
-            'FOREIGN KEY (receiver_id) REFERENCES ' + users_table.get_database_name() + '(user_id), '
-            'PRIMARY KEY (event_id, user_id))')
+        self.database.execute('CREATE TABLE IF NOT EXISTS event_users ('
+                              'event_id INTEGER NOT NULL, '
+                              'user_id INTEGER NOT NULL, '
+                              'is_admin INTEGER NOT NULL DEFAULT 0, '
+                              'receiver_id INTEGER, '
+                              'FOREIGN KEY (event_id) REFERENCES events (id), '
+                              'FOREIGN KEY (user_id) REFERENCES users (id), '
+                              'FOREIGN KEY (receiver_id) REFERENCES users (id), '
+                              'PRIMARY KEY (event_id, user_id))')
 
     def get_database_wrapper(self):
         return self.database
 
-    def get_database_name(self):
-        return self.db_name
+    def add_event_user(self, event_id, user_id, is_admin=False):
+        self.database.execute(
+            'INSERT INTO event_users (event_id, user_id, is_admin) VALUES (?, ?, ?)',
+            (event_id, user_id, is_admin)
+        )
 
-    def add_event_user_pair(self, event_id, user_id, is_admin=False):
-        self.database.execute('INSERT INTO ' + self.db_name +
-                              ' (event_id, user_id, is_admin) VALUES (?, ?, ?)', (event_id, user_id, is_admin))
+    def get_event_user(self, event_id, user_id):
+        res = self.database.execute_and_fetch_one(
+            'SELECT event_id, user_id, is_admin, receiver_id FROM event_users WHERE (event_id, user_id) = (?, ?)',
+            (event_id, user_id)
+        )
+        return EventUser(res[0], res[1], res[2], res[3])
 
-    def update_user_admin_rights(self, event_id, user_id, is_admin):
-        self.database.execute('UPDATE ' + self.db_name + ' SET is_admin = ? WHERE (event_id, user_id) = (?, ?)',
-                              (is_admin, event_id, user_id))
-
-    def get_user_admin_rights(self, event_id, user_id):
-        res = self.database.execute_and_fetch('SELECT is_admin FROM ' + self.db_name +
-                                              ' WHERE (event_id, user_id) = (?, ?)', (user_id, event_id))
-        if not len(res):
-            return -1
-        else:
-            return res[0][0]
-
-    def assign_receiver(self, event_id, user_id, receiver_id):
-        self.database.execute('UPDATE ' + self.db_name + ' SET receiver_id = ? WHERE (event_id, user_id) = (?, ?)',
-                              (receiver_id, event_id, user_id))
-
-    def get_receiver(self, event_id, user_id):
-        res = self.database.execute_and_fetch('SELECT receiver_id FROM ' + self.db_name +
-                                              ' WHERE (event_id, user_id) = (?, ?)', (user_id, event_id))
-        if not len(res):
-            return -1
-        else:
-            return res[0][0]
+    def set_receiver(self, event_id, user_id, receiver_id):
+        self.database.execute(
+            'UPDATE event_users SET receiver_id = ? WHERE (event_id, user_id) = (?, ?)',
+            (receiver_id, event_id, user_id)
+        )
 
     def get_all_users_per_event(self, event_id):
-        res = self.database.execute_and_fetch('SELECT user_id FROM ' + self.db_name + ' WHERE event_id = ?',
+        res = self.database.execute_and_fetch('SELECT user_id FROM event_users WHERE event_id = ?',
                                               (event_id,))
         return [i[0] for i in res]
 
     def get_all_events_per_user(self, user_id):
-        res = self.database.execute_and_fetch('SELECT event_id FROM ' + self.db_name + ' WHERE user_id = ?',
+        res = self.database.execute_and_fetch('SELECT event_id FROM event_users WHERE user_id = ?',
                                               (user_id,))
         return [i[0] for i in res]
 
     def delete_event_user_pair(self, event_id, user_id):
-        self.database.execute('DELETE FROM ' + self.db_name +
-                              ' WHERE (event_id, user_id) = (?, ?)', (event_id, user_id))
+        self.database.execute('DELETE FROM event_users WHERE (event_id, user_id) = (?, ?)', (event_id, user_id))
+
 
 # --------------------------------------------------------------------------------
 
 
 def add_event_user_pair_test(db_filename, events_table, users_table, events_users_db_name, event_id, user_id,
-                             is_admin = False):
-
+                             is_admin=False):
     if events_table.get_name(event_id) == '':
         print('add_event_user_pair_test: event ID is not a member of Events table!')
         return False
@@ -177,9 +173,9 @@ def run_all_event_users_tests():
     db_name_users = 'santaUsers'
     db_name_event_users = 'eventUsers'
 
-    #database.delete_table(db_filename, db_name_users)
-    #database.delete_table(db_filename, db_name_events)
-    #database.delete_table(db_filename, db_name_event_users)
+    # database.delete_table(db_filename, db_name_users)
+    # database.delete_table(db_filename, db_name_events)
+    # database.delete_table(db_filename, db_name_event_users)
 
     user_name = 'Katya'
     login = 'kitekat'

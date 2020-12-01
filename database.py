@@ -25,6 +25,13 @@ class DatabaseWrapper:
             cursor.execute(*args, **kwargs)
             return cursor.fetchone()
 
+    def execute_and_get_inserted_id(self, *args, **kwargs):
+        with sqlite3.Connection(self.filename) as connection:
+            cursor = connection.cursor()
+            cursor.execute(*args, **kwargs)
+            connection.commit()
+            return cursor.lastrowid
+
 
 def print_all_database(db, db_name, text=''):
     print(text)
