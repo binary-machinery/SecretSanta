@@ -39,6 +39,13 @@ class Events:
         )
         return Event(res[0], res[1], res[2], res[3])
 
+    def get_event_by_invite_code(self, invite_code):
+        res = self.database.execute_and_fetch_one(
+            'SELECT id, name, description, invite_code FROM events WHERE invite_code = ?',
+            (invite_code,)
+        )
+        return Event(res[0], res[1], res[2], res[3])
+
     def get_all_events_for_user(self, user_id):
         res = self.database.execute_and_fetch(
             'SELECT events.* '

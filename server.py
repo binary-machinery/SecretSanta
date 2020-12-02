@@ -106,5 +106,17 @@ def handle_user_events():
     return Response(json.dumps(data), status=200)
 
 
+@app.route("/join-event", methods=["POST"])
+@login_required
+def handle_join_event():
+    invite_code = request.json["invite_code"]
+    event = events.get_event_by_invite_code(invite_code)
+    if not event:
+        return Response(status=404)
+
+    event_users.add_event_user(event.event_id, current_user.get_id())
+    return Response(status=200)
+
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=3000)
