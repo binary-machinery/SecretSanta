@@ -143,5 +143,16 @@ def handle_get_event_users(event_id):
     return Response(json.dumps(event_users_data), status=200)
 
 
+@app.route("/event/<event_id>/personal-data", methods=["GET"])
+@login_required
+def handle_get_event_personal_data(event_id):
+    event_user = event_users.get_event_user(event_id, current_user.get_id())
+    if event_user is None:
+        return Response(status=403)
+
+    personal_data = event_users.get_event_user_private_data(event_id, current_user.get_id())
+    return Response(json.dumps(personal_data.__dict__), status=200)
+
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=3000)
