@@ -118,5 +118,30 @@ def handle_join_event():
     return Response(status=200)
 
 
+@app.route("/event/<event_id>", methods=["GET"])
+@login_required
+def handle_get_event(event_id):
+    event_user = event_users.get_event_user(event_id, current_user.get_id())
+    if event_user is None:
+        return Response(status=403)
+
+    event = events.get_event_by_id(event_id)
+    if event is not None:
+        return Response(json.dumps(event.__dict__), status=200)
+    else:
+        return Response(status=404)
+
+
+@app.route("/event/<event_id>/users", methods=["GET"])
+@login_required
+def handle_get_event_users(event_id):
+    event_user = event_users.get_event_user(event_id, current_user.get_id())
+    if event_user is None:
+        return Response(status=403)
+
+    event_users_data = [user.__dict__ for user in event_users.get_event_users(event_id)]
+    return Response(json.dumps(event_users_data), status=200)
+
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=3000)

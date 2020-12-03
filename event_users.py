@@ -9,8 +9,8 @@ import users
 class EventUser:
     event_id: int
     user_id: int
+    user_name: str
     is_admin: bool
-    receiver_id: int
 
 
 class EventUsers:
@@ -37,10 +37,28 @@ class EventUsers:
 
     def get_event_user(self, event_id, user_id):
         res = self.database.execute_and_fetch_one(
-            'SELECT event_id, user_id, is_admin, receiver_id FROM event_users WHERE (event_id, user_id) = (?, ?)',
+            'SELECT event_id, user_id, name, is_admin '
+            'FROM event_users '
+            'JOIN users '
+            '    ON users.id = event_users.user_id '
+            'WHERE (event_id, user_id) = (?, ?)',
             (event_id, user_id)
         )
+        if res is None:
+            return None
+
         return EventUser(res[0], res[1], res[2], res[3])
+
+    def get_event_users(self, event_id):
+        res = self.database.execute_and_fetch(
+            'SELECT event_id, user_id, name, is_admin '
+            'FROM event_users '
+            'JOIN users '
+            '    ON users.id = event_users.user_id '
+            'WHERE event_id = ?',
+            (event_id,)
+        )
+        return [EventUser(row[0], row[1], row[2], row[3]) for row in res]
 
     def set_receiver(self, event_id, user_id, receiver_id):
         self.database.execute(
