@@ -71,7 +71,7 @@ class EventUsers:
             '         AND eu1.event_id = eu2.event_id '
             'JOIN users u1 '
             '    ON u1.id = eu1.user_id '
-            'JOIN users u2 '
+            'LEFT JOIN users u2 '
             '    ON u2.id = eu1.receiver_id '
             'WHERE (eu1.event_id, eu1.user_id) = (?, ?)',
             (event_id, user_id)
