@@ -154,5 +154,13 @@ def handle_get_event_personal_data(event_id):
     return Response(json.dumps(personal_data.__dict__), status=200)
 
 
+@app.route("/event/<event_id>/save-wishes", methods=["POST"])
+@login_required
+def handle_save_wishes(event_id):
+    wishes = request.json["wishes"]
+    event_users.set_wishes(event_id, current_user.get_id(), wishes)
+    return Response(status=200)
+
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=3000)
