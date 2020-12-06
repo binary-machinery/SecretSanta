@@ -104,16 +104,6 @@ class EventUsers:
             (receiver_id, event_id, user_id)
         )
 
-    def get_all_users_per_event(self, event_id):
-        res = self.database.execute_and_fetch('SELECT user_id FROM event_users WHERE event_id = ?',
-                                              (event_id,))
-        return [i[0] for i in res]
-
-    def get_all_events_per_user(self, user_id):
-        res = self.database.execute_and_fetch('SELECT event_id FROM event_users WHERE user_id = ?',
-                                              (user_id,))
-        return [i[0] for i in res]
-
     def delete_event_user_pair(self, event_id, user_id):
         self.database.execute('DELETE FROM event_users WHERE (event_id, user_id) = (?, ?)', (event_id, user_id))
 

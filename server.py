@@ -12,6 +12,7 @@ from passlib.hash import sha256_crypt
 from event_constraints import EventUserConstraints
 from event_users import EventUsers
 from events import Events
+from main import EventUsersHandler
 from users import Users
 
 app = Flask(__name__)
@@ -215,6 +216,21 @@ def handle_delete_event_user_constraint(event_id):
     data = request.json
     event_user_constraints.delete_constraint(event_id, data["user_id"], data["constraint_user_id"])
     return Response(status=200)
+
+
+@app.route("/event/<event_id>/start", methods=["POST"])
+@login_required
+def handle_event_start(event_id):
+    event_user = event_users.get_event_user(event_id, current_user.get_id())
+    if event_user is None or not event_user.is_admin:
+        return Response(status=403)
+
+    handler = EventUsersHandler(event_users, event_user_constraints)
+    result = handler.assign_receivers(event_id)
+    if result:
+        return Response(status=200)
+    else:
+        return Response(status=500)
 
 
 if __name__ == "__main__":
