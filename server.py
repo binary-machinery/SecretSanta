@@ -87,6 +87,8 @@ def handle_current_user():
 @login_required
 def handle_save_profile():
     data = request.json
+    if "email" in data:
+        users.set_email(current_user.get_id(), data["email"])
     if "name" in data:
         users.set_name(current_user.get_id(), data["name"])
     return Response(status=200)

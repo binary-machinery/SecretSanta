@@ -37,6 +37,9 @@ class Users:
             (email, name, password_hash)
         )
 
+    def set_email(self, user_id, email):
+        self.database.execute('UPDATE users SET email = ? WHERE id = ?', (email, user_id))
+
     def set_name(self, user_id, name):
         self.database.execute('UPDATE users SET name = ? WHERE id = ?', (name, user_id))
 
