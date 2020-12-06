@@ -9,6 +9,7 @@ from flask_cors import CORS
 from flask_login import LoginManager, login_user, current_user, logout_user, login_required
 from passlib.hash import sha256_crypt
 
+from event_constraints import EventUserConstraints
 from event_users import EventUsers
 from events import Events
 from users import Users
@@ -26,6 +27,7 @@ db_filename = "./secret_santa.sqlite"
 users = Users(db_filename)
 events = Events(db_filename)
 event_users = EventUsers(db_filename)
+event_user_constraints = EventUserConstraints(db_filename)
 
 
 @login_manager.user_loader
@@ -89,7 +91,7 @@ def handle_save_profile():
     return Response(status=200)
 
 
-@app.route("/create-event", methods=["POST"])
+@app.route("/event/create", methods=["POST"])
 @login_required
 def handle_create_event():
     data = request.json
@@ -99,14 +101,27 @@ def handle_create_event():
     return Response(status=200)
 
 
-@app.route("/user-events", methods=["GET"])
+@app.route("/event/<event_id>/edit", methods=["POST"])
+@login_required
+def handle_edit_event(event_id):
+    event_user = event_users.get_event_user(event_id, current_user.get_id())
+    if event_user is None or not event_user.is_admin:
+        return Response(status=403)
+
+    data = request.json
+    events.set_name(event_id, data["name"])
+    events.set_description(event_id, data["description"])
+    return Response(status=200)
+
+
+@app.route("/event/user-events", methods=["GET"])
 @login_required
 def handle_user_events():
     data = [event.__dict__ for event in events.get_all_events_for_user(current_user.get_id())]
     return Response(json.dumps(data), status=200)
 
 
-@app.route("/join-event", methods=["POST"])
+@app.route("/event/join", methods=["POST"])
 @login_required
 def handle_join_event():
     invite_code = request.json["invite_code"]
@@ -159,6 +174,46 @@ def handle_get_event_personal_data(event_id):
 def handle_save_wishes(event_id):
     wishes = request.json["wishes"]
     event_users.set_wishes(event_id, current_user.get_id(), wishes)
+    return Response(status=200)
+
+
+@app.route("/event/<event_id>/constraints", methods=["GET"])
+@login_required
+def handle_get_event_user_constraints(event_id):
+    event_user = event_users.get_event_user(event_id, current_user.get_id())
+    if event_user is None:
+        return Response(status=403)
+
+    constraints = {}
+    for constraint in event_user_constraints.get_user_constraints_for_event(event_id):
+        if constraint.user_id not in constraints:
+            constraints[constraint.user_id] = []
+        constraints[constraint.user_id].append(constraint.__dict__)
+
+    return Response(json.dumps(constraints), status=200)
+
+
+@app.route("/event/<event_id>/constraints", methods=["POST"])
+@login_required
+def handle_add_event_user_constraint(event_id):
+    event_user = event_users.get_event_user(event_id, current_user.get_id())
+    if event_user is None or not event_user.is_admin:
+        return Response(status=403)
+
+    data = request.json
+    event_user_constraints.add_constraint(event_id, data["user_id"], data["constraint_user_id"])
+    return Response(status=200)
+
+
+@app.route("/event/<event_id>/constraints", methods=["DELETE"])
+@login_required
+def handle_delete_event_user_constraint(event_id):
+    event_user = event_users.get_event_user(event_id, current_user.get_id())
+    if event_user is None or not event_user.is_admin:
+        return Response(status=403)
+
+    data = request.json
+    event_user_constraints.delete_constraint(event_id, data["user_id"], data["constraint_user_id"])
     return Response(status=200)
 
 

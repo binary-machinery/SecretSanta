@@ -1,57 +1,56 @@
+from dataclasses import dataclass
+
+import database
 import events
 import users
-import event_users
-import database
+
+
+@dataclass
+class EventUserConstraint:
+    event_id: int
+    user_id: int
+    constraint_user_id: int
 
 
 class EventUserConstraints:
-    def __init__(self, db_filename, events_table, users_table, db_name):
+    def __init__(self, db_filename):
         self.database = database.DatabaseWrapper(db_filename)
-        self.db_name = db_name
-        self.database.execute('CREATE TABLE IF NOT EXISTS ' + db_name + ' ('
-            'event_id INTEGER NOT NULL, '
-            'user_id INTEGER NOT NULL, '
-            'constraint_user_id INTEGER NOT NULL, '
-            'FOREIGN KEY (event_id) REFERENCES ' + events_table.get_database_name() + '(event_id), '
-            'FOREIGN KEY (user_id) REFERENCES ' + users_table.get_database_name() + '(user_id), '
-            'FOREIGN KEY (constraint_user_id) REFERENCES ' + users_table.get_database_name() + '(user_id), '
-            'PRIMARY KEY (event_id, user_id, constraint_user_id))')
+        self.database.execute('CREATE TABLE IF NOT EXISTS event_user_constraints ('
+                              'event_id INTEGER NOT NULL, '
+                              'user_id INTEGER NOT NULL, '
+                              'constraint_user_id INTEGER NOT NULL, '
+                              'FOREIGN KEY (event_id) REFERENCES events (id), '
+                              'FOREIGN KEY (user_id) REFERENCES users (id), '
+                              'FOREIGN KEY (constraint_user_id) REFERENCES users (id), '
+                              'PRIMARY KEY (event_id, user_id, constraint_user_id))')
 
     def get_database_wrapper(self):
         return self.database
 
-    def get_database_name(self):
-        return self.db_name
-
     def add_constraint(self, event_id, user_id, constraint_user_id):
-        self.database.execute('INSERT INTO ' + self.db_name +
-                              ' (event_id, user_id, constraint_user_id) VALUES (?, ?, ?)',
+        self.database.execute('INSERT INTO event_user_constraints (event_id, user_id, constraint_user_id) '
+                              'VALUES (?, ?, ?)',
                               (event_id, user_id, constraint_user_id))
 
     def delete_constraint(self, event_id, user_id, constraint_user_id):
-        self.database.execute('DELETE FROM ' + self.db_name +
-                              ' WHERE (event_id, user_id, constraint_user_id) = (?, ?, ?)',
+        self.database.execute('DELETE FROM event_user_constraints '
+                              'WHERE (event_id, user_id, constraint_user_id) = (?, ?, ?)',
                               (event_id, user_id, constraint_user_id))
 
-    def get_all_rejected_users_per_event_user_pair(self, event_id, user_id):
-        res = self.database.execute_and_fetch('SELECT constraint_user_id FROM ' + self.db_name +
-                                        ' WHERE (event_id, user_id) = (?, ?)', (event_id, user_id))
-        if not len(res):
-            return []
-        else:
-            return [i[0] for i in res]
+    def get_user_constraints_for_event(self, event_id):
+        res = self.database.execute_and_fetch(
+            'SELECT event_id, user_id, constraint_user_id '
+            'FROM event_user_constraints '
+            'WHERE event_id = ?',
+            (event_id,))
+        return [EventUserConstraint(row[0], row[1], row[2]) for row in res]
 
-    def constraint_exists(self, event_id, user_id, constraint_user_id):
-        res = self.database.execute_and_fetch('SELECT event_id FROM ' + self.db_name +
-                                              ' WHERE (event_id, user_id, constraint_user_id) = (?, ?, ?)',
-                                              (event_id, user_id, constraint_user_id))
-        return (not res) == False
 
 # --------------------------------------------------------------------------------
 
 
 def add_constraint_test(db_filename, events_table, users_table, event_user_constraint_db_name,
-                                    event_id, user_id, constraint_user_id):
+                        event_id, user_id, constraint_user_id):
     if events_table.get_name(event_id) == '':
         print('add_constraint_test: event ID is not a member of Events table!')
         return False
@@ -121,7 +120,7 @@ def constraint_exists_test(db_filename, events_table, users_table, event_user_co
 
 
 def delete_constraint_test(db_filename, events_table, users_table, event_user_constraint_db_name,
-                        event_id, user_id, constraint_user_id):
+                           event_id, user_id, constraint_user_id):
     if events_table.get_name(event_id) == '':
         print('delete_constraint_test: event ID is not a member of Events table!')
         return False
@@ -160,9 +159,9 @@ def run_all_event_user_constraints_tests():
     db_name_users = 'santaUsers'
     db_name_event_user_constraints = 'eventUserConstraints'
 
-    #database.delete_table(db_filename, db_name_users)
-    #database.delete_table(db_filename, db_name_events)
-    #database.delete_table(db_filename, db_name_event_user_constraints)
+    # database.delete_table(db_filename, db_name_users)
+    # database.delete_table(db_filename, db_name_events)
+    # database.delete_table(db_filename, db_name_event_user_constraints)
 
     user_name = 'Katya'
     login = 'kitekat'
