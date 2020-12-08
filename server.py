@@ -36,12 +36,12 @@ def load_user(user_id):
     return users.get_user_by_id(user_id)
 
 
-@app.route("/ping", methods=["GET", "POST"])
+@app.route("/api/ping", methods=["GET", "POST"])
 def handle_ping():
     return Response("Pong", status=200)
 
 
-@app.route("/registration", methods=["POST"])
+@app.route("/api/registration", methods=["POST"])
 def handle_registration():
     email = request.form["email"]
     name = email.split("@")[0]
@@ -53,7 +53,7 @@ def handle_registration():
     return Response(status=200)
 
 
-@app.route("/login", methods=["POST"])
+@app.route("/api/login", methods=["POST"])
 def handle_login():
     if current_user.is_authenticated:
         return Response(status=200)
@@ -69,21 +69,21 @@ def handle_login():
     return Response("Wrong user or password", status=401)
 
 
-@app.route("/logout", methods=["POST"])
+@app.route("/api/logout", methods=["POST"])
 @login_required
 def handle_logout():
     logout_user()
     return Response(status=200)
 
 
-@app.route("/current-user", methods=["GET"])
+@app.route("/api/current-user", methods=["GET"])
 def handle_current_user():
     if current_user.is_authenticated:
         return Response(json.dumps(current_user.__dict__), status=200)
     return Response(status=200)
 
 
-@app.route("/save-profile", methods=["POST"])
+@app.route("/api/save-profile", methods=["POST"])
 @login_required
 def handle_save_profile():
     data = request.json
@@ -94,7 +94,7 @@ def handle_save_profile():
     return Response(status=200)
 
 
-@app.route("/event/create", methods=["POST"])
+@app.route("/api/event/create", methods=["POST"])
 @login_required
 def handle_create_event():
     data = request.json
@@ -104,7 +104,7 @@ def handle_create_event():
     return Response(status=200)
 
 
-@app.route("/event/<event_id>/edit", methods=["POST"])
+@app.route("/api/event/<event_id>/edit", methods=["POST"])
 @login_required
 def handle_edit_event(event_id):
     event_user = event_users.get_event_user(event_id, current_user.get_id())
@@ -117,14 +117,14 @@ def handle_edit_event(event_id):
     return Response(status=200)
 
 
-@app.route("/event/user-events", methods=["GET"])
+@app.route("/api/event/user-events", methods=["GET"])
 @login_required
 def handle_user_events():
     data = [event.__dict__ for event in events.get_all_events_for_user(current_user.get_id())]
     return Response(json.dumps(data), status=200)
 
 
-@app.route("/event/join", methods=["POST"])
+@app.route("/api/event/join", methods=["POST"])
 @login_required
 def handle_join_event():
     invite_code = request.json["invite_code"]
@@ -136,7 +136,7 @@ def handle_join_event():
     return Response(status=200)
 
 
-@app.route("/event/<event_id>", methods=["GET"])
+@app.route("/api/event/<event_id>", methods=["GET"])
 @login_required
 def handle_get_event(event_id):
     event_user = event_users.get_event_user(event_id, current_user.get_id())
@@ -150,7 +150,7 @@ def handle_get_event(event_id):
         return Response(status=404)
 
 
-@app.route("/event/<event_id>/users", methods=["GET"])
+@app.route("/api/event/<event_id>/users", methods=["GET"])
 @login_required
 def handle_get_event_users(event_id):
     event_user = event_users.get_event_user(event_id, current_user.get_id())
@@ -161,7 +161,7 @@ def handle_get_event_users(event_id):
     return Response(json.dumps(event_users_data), status=200)
 
 
-@app.route("/event/<event_id>/personal-data", methods=["GET"])
+@app.route("/api/event/<event_id>/personal-data", methods=["GET"])
 @login_required
 def handle_get_event_personal_data(event_id):
     event_user = event_users.get_event_user(event_id, current_user.get_id())
@@ -172,7 +172,7 @@ def handle_get_event_personal_data(event_id):
     return Response(json.dumps(personal_data.__dict__), status=200)
 
 
-@app.route("/event/<event_id>/save-wishes", methods=["POST"])
+@app.route("/api/event/<event_id>/save-wishes", methods=["POST"])
 @login_required
 def handle_save_wishes(event_id):
     wishes = request.json["wishes"]
@@ -180,7 +180,7 @@ def handle_save_wishes(event_id):
     return Response(status=200)
 
 
-@app.route("/event/<event_id>/constraints", methods=["GET"])
+@app.route("/api/event/<event_id>/constraints", methods=["GET"])
 @login_required
 def handle_get_event_user_constraints(event_id):
     event_user = event_users.get_event_user(event_id, current_user.get_id())
@@ -196,7 +196,7 @@ def handle_get_event_user_constraints(event_id):
     return Response(json.dumps(constraints), status=200)
 
 
-@app.route("/event/<event_id>/constraints", methods=["POST"])
+@app.route("/api/event/<event_id>/constraints", methods=["POST"])
 @login_required
 def handle_add_event_user_constraint(event_id):
     event_user = event_users.get_event_user(event_id, current_user.get_id())
@@ -208,7 +208,7 @@ def handle_add_event_user_constraint(event_id):
     return Response(status=200)
 
 
-@app.route("/event/<event_id>/constraints", methods=["DELETE"])
+@app.route("/api/event/<event_id>/constraints", methods=["DELETE"])
 @login_required
 def handle_delete_event_user_constraint(event_id):
     event_user = event_users.get_event_user(event_id, current_user.get_id())
@@ -220,7 +220,7 @@ def handle_delete_event_user_constraint(event_id):
     return Response(status=200)
 
 
-@app.route("/event/<event_id>/start", methods=["POST"])
+@app.route("/api/event/<event_id>/start", methods=["POST"])
 @login_required
 def handle_event_start(event_id):
     event_user = event_users.get_event_user(event_id, current_user.get_id())
