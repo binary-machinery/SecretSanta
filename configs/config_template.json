@@ -1,0 +1,13 @@
+{
+  "server": {
+    "port": 3000,
+    "secret_key": "secret_key"
+  },
+  "database": {
+    "filename": "./secret_santa.sqlite"
+  },
+  "email_sender": {
+    "email": "email@email.com",
+    "password": "password"
+  }
+}

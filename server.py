@@ -9,26 +9,33 @@ from flask_cors import CORS
 from flask_login import LoginManager, login_user, current_user, logout_user, login_required
 from passlib.hash import sha256_crypt
 
+from common.config_loader import ConfigLoader
+from common.email_sender import EmailSender
 from secret_santa.event_constraints import EventUserConstraints
 from secret_santa.event_users import EventUsers
-from secret_santa.events import Events
 from secret_santa.event_users_handler import EventUsersHandler
+from secret_santa.events import Events
 from secret_santa.users import Users
 
+config = ConfigLoader.load()
+
 app = Flask(__name__)
-app.secret_key = 'lgnqgblksgnsgnleng'
+app.secret_key = config["server"]["secret_key"]
 
 cors = CORS(app, supports_credentials=True)
 
 login_manager = LoginManager()
 login_manager.init_app(app)
 
-db_filename = "./secret_santa.sqlite"
+db_filename = config["database"]["filename"]
 
 users = Users(db_filename)
 events = Events(db_filename)
 event_users = EventUsers(db_filename)
 event_user_constraints = EventUserConstraints(db_filename)
+
+event_users_handler = EventUsersHandler(event_users, event_user_constraints)
+email_sender = EmailSender(config["email_sender"])
 
 
 @login_manager.user_loader
@@ -227,12 +234,25 @@ def handle_event_start(event_id):
     if event_user is None or not event_user.is_admin:
         return Response(status=403)
 
-    handler = EventUsersHandler(event_users, event_user_constraints)
     for i in range(1, 50):
         print(f"Run iteration {i}...")
-        result = handler.assign_receivers(event_id)
-        if result:
+        success = event_users_handler.assign_receivers(event_id)
+        if success:
             print("...success")
+            event = events.get_event_by_id(event_id)
+            for user_private_data in event_users.get_event_users_private_data(event_id):
+                if user_private_data.receiver_wishes:
+                    email_template = ConfigLoader.load_email_template("email_event_started")
+                    email_body = email_template.format(event.name, user_private_data.receiver_name,
+                                                       user_private_data.receiver_wishes)
+                else:
+                    email_template = ConfigLoader.load_email_template("email_event_started_no_wishes")
+                    email_body = email_template.format(event.name, user_private_data.receiver_name)
+
+                email_sender.send_email(user_private_data.user_email,
+                                        subject="Праздник начинается!",
+                                        body=email_body)
+
             return Response(status=200)
 
     print("...failure")
@@ -240,4 +260,4 @@ def handle_event_start(event_id):
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=3000)
+    app.run(host="0.0.0.0", port=config["server"]["port"])
