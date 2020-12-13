@@ -228,11 +228,15 @@ def handle_event_start(event_id):
         return Response(status=403)
 
     handler = EventUsersHandler(event_users, event_user_constraints)
-    result = handler.assign_receivers(event_id)
-    if result:
-        return Response(status=200)
-    else:
-        return Response(status=500)
+    for i in range(1, 50):
+        print(f"Run iteration {i}...")
+        result = handler.assign_receivers(event_id)
+        if result:
+            print("...success")
+            return Response(status=200)
+
+    print("...failure")
+    return Response(status=500)
 
 
 if __name__ == "__main__":
