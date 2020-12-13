@@ -9,11 +9,11 @@ from flask_cors import CORS
 from flask_login import LoginManager, login_user, current_user, logout_user, login_required
 from passlib.hash import sha256_crypt
 
-from event_constraints import EventUserConstraints
-from event_users import EventUsers
-from events import Events
-from main import EventUsersHandler
-from users import Users
+from secret_santa.event_constraints import EventUserConstraints
+from secret_santa.event_users import EventUsers
+from secret_santa.events import Events
+from secret_santa.event_users_handler import EventUsersHandler
+from secret_santa.users import Users
 
 app = Flask(__name__)
 app.secret_key = 'lgnqgblksgnsgnleng'

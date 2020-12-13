@@ -2,7 +2,7 @@ from dataclasses import dataclass
 
 from flask_login import UserMixin
 
-import database
+from common import database
 
 
 @dataclass
