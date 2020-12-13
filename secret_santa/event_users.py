@@ -81,6 +81,26 @@ class EventUsers:
 
         return EventUserPrivateData(res[0], res[1], res[2], res[3], res[4], res[5], res[6], res[7], res[8])
 
+    def get_event_user_private_data_by_receiver_id(self, event_id, receiver_id):
+        res = self.database.execute_and_fetch_one(
+            'SELECT eu1.event_id, eu1.user_id, u1.name, u1.email, eu1.is_admin, '
+            '    eu1.wishes, eu1.receiver_id, u2.name, eu2.wishes '
+            'FROM event_users eu1 '
+            'LEFT JOIN event_users eu2 '
+            '    ON eu1.receiver_id = eu2.user_id '
+            '         AND eu1.event_id = eu2.event_id '
+            'JOIN users u1 '
+            '    ON u1.id = eu1.user_id '
+            'LEFT JOIN users u2 '
+            '    ON u2.id = eu1.receiver_id '
+            'WHERE (eu1.event_id, eu1.receiver_id) = (?, ?)',
+            (event_id, receiver_id)
+        )
+        if res is None:
+            return None
+
+        return EventUserPrivateData(res[0], res[1], res[2], res[3], res[4], res[5], res[6], res[7], res[8])
+
     def get_event_users(self, event_id):
         res = self.database.execute_and_fetch(
             'SELECT event_id, user_id, name, is_admin '

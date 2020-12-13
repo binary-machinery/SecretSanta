@@ -8,6 +8,7 @@
   },
   "email_sender": {
     "email": "email@email.com",
+    "name": "Secret Santa",
     "password": "password"
   }
 }

@@ -184,6 +184,14 @@ def handle_get_event_personal_data(event_id):
 def handle_save_wishes(event_id):
     wishes = request.json["wishes"]
     event_users.set_wishes(event_id, current_user.get_id(), wishes)
+
+    email_template = ConfigLoader.load_email_template("email_wishes_updated")
+    user_private_data = event_users.get_event_user_private_data_by_receiver_id(event_id, current_user.get_id())
+    email_body = email_template.format(user_private_data.receiver_name, user_private_data.receiver_wishes)
+    email_sender.send_email(user_private_data.user_email,
+                            subject="Получатель обновил пожелания!",
+                            body=email_body)
+
     return Response(status=200)
 
 
