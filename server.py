@@ -1,6 +1,4 @@
 import json
-import random
-import string
 
 from flask import Flask
 from flask import Response
@@ -11,6 +9,7 @@ from passlib.hash import sha256_crypt
 
 from common.config_loader import ConfigLoader
 from common.email_sender import EmailSender
+from common.random_string_generator import RandomStringGenerator
 from secret_santa.event_constraints import EventUserConstraints
 from secret_santa.event_users import EventUsers
 from secret_santa.event_users_handler import EventUsersHandler
@@ -46,6 +45,18 @@ def load_user(user_id):
 @app.route("/api/ping", methods=["GET", "POST"])
 def handle_ping():
     return Response("Pong", status=200)
+
+
+@app.route("/api/test-email", methods=["GET", "POST"])
+@login_required
+def handle_test_email():
+    code = RandomStringGenerator.generate(10)
+    email_template = ConfigLoader.load_email_template("email_test")
+    email_body = email_template.format(code)
+    email_sender.send_email(current_user.__dict__["email"],
+                            subject="Проверка",
+                            body=email_body)
+    return Response(code, status=200)
 
 
 @app.route("/api/registration", methods=["POST"])
@@ -105,7 +116,7 @@ def handle_save_profile():
 @login_required
 def handle_create_event():
     data = request.json
-    invite_code = "".join(random.choices(string.ascii_letters + string.digits, k=10))
+    invite_code = RandomStringGenerator.generate(10)
     event_id = events.add_event(data["name"], data["description"], invite_code)
     event_users.add_event_user(event_id, current_user.get_id(), True)
     return Response(status=200)
