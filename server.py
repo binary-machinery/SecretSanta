@@ -253,28 +253,24 @@ def handle_event_start(event_id):
     if event_user is None or not event_user.is_admin:
         return Response(status=403)
 
-    for i in range(1, 50):
-        print(f"Run iteration {i}...")
-        success = event_users_handler.assign_receivers(event_id)
-        if success:
-            print("...success")
-            event = events.get_event_by_id(event_id)
-            for user_private_data in event_users.get_event_users_private_data(event_id):
-                if user_private_data.receiver_wishes:
-                    email_template = ConfigLoader.load_email_template("email_event_started")
-                    email_body = email_template.format(event.name, user_private_data.receiver_name,
-                                                       user_private_data.receiver_wishes)
-                else:
-                    email_template = ConfigLoader.load_email_template("email_event_started_no_wishes")
-                    email_body = email_template.format(event.name, user_private_data.receiver_name)
+    success = event_users_handler.assign_receivers(event_id)
+    if success:
+        event = events.get_event_by_id(event_id)
+        for user_private_data in event_users.get_event_users_private_data(event_id):
+            if user_private_data.receiver_wishes:
+                email_template = ConfigLoader.load_email_template("email_event_started")
+                email_body = email_template.format(event.name, user_private_data.receiver_name,
+                                                   user_private_data.receiver_wishes)
+            else:
+                email_template = ConfigLoader.load_email_template("email_event_started_no_wishes")
+                email_body = email_template.format(event.name, user_private_data.receiver_name)
 
-                email_sender.send_email(user_private_data.user_email,
-                                        subject="Праздник начинается!",
-                                        body=email_body)
+            email_sender.send_email(user_private_data.user_email,
+                                    subject="Праздник начинается!",
+                                    body=email_body)
 
-            return Response(status=200)
+        return Response(status=200)
 
-    print("...failure")
     return Response(status=500)
 
 

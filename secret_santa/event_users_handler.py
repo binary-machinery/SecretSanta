@@ -1,8 +1,5 @@
 import random
 
-from common import database
-from secret_santa import events, event_users, event_constraints, users
-
 
 class EventUsersHandler:
     def __init__(self, event_users_table, event_constraints_table):
@@ -20,34 +17,83 @@ class EventUsersHandler:
         constraints = {}
         for constraint in self.event_user_constraints.get_user_constraints_for_event(event_id):
             if constraint.user_id not in constraints:
-                constraints[constraint.user_id] = []
-            constraints[constraint.user_id].append(constraint.constraint_user_id)
+                constraints[constraint.user_id] = set()
+            constraints[constraint.user_id].add(constraint.constraint_user_id)
 
-        all_allowed_users = []
-        for user_id in user_ids:
-            constraint_user_ids = constraints.get(user_id, [])
-            allowed_users = []
-            for allowed_candidate_id in user_ids:
-                if allowed_candidate_id != user_id and allowed_candidate_id not in constraint_user_ids:
-                    allowed_users.append(allowed_candidate_id)
-            all_allowed_users.append(allowed_users)
+        result = EventUsersHandler.run_search(user_ids, constraints)
+        if result is None:
+            return False
 
-        # sort allowed users by the amount of such users, sorted_order is the index of a sorted list
-        sorted_order = sorted(range(len(all_allowed_users)), key=lambda k: len(all_allowed_users[k]))
-
-        assigned_user_ids = []
-        for i in sorted_order:
-            # remove all already assigned users since they're not allowed anymore
-            updated_allowed_users = [x for x in all_allowed_users[i] if x not in assigned_user_ids]
-            if len(updated_allowed_users) == 0:
-                return False
-            assigned_user_id = random.choice(updated_allowed_users)
-            assigned_user_ids.append(assigned_user_id)
-
-        # not in the previous cycle not to spoil database with incorrect data
-        # (what if we return False in the middle of it?)
-        for user_id in user_ids:
-            index_in_a_sorted_list = sorted_order.index(user_ids.index(user_id))
-            self.event_users.set_receiver(event_id, user_id, assigned_user_ids[index_in_a_sorted_list])
+        for index, user_id in enumerate(result):
+            next_index = (index + 1) % len(result)
+            self.event_users.set_receiver(event_id, user_id, result[next_index])
 
         return True
+
+    # Caution: the method modifies the user_ids arg
+    @staticmethod
+    def run_search(user_ids, constraints):
+        class ResTreeNode:
+            def __init__(self, user_id):
+                self.used_ids = set()
+                self.cur_id = user_id
+
+            def __str__(self):
+                return str(self.cur_id) + " (" + str(self.used_ids) + ")"
+
+        res = []
+        while True:
+            constraints_len = 0
+            if len(res) > 0:
+                cur_user_id_node = res[-1]
+                constraint_user_ids = constraints.get(cur_user_id_node.cur_id, set())
+
+                if len(constraint_user_ids) or len(cur_user_id_node.used_ids):
+                    # move constrained and used ids to the end of the list
+                    index = 0
+                    scan_max = len(user_ids)
+                    while index < scan_max:
+                        if user_ids[index] in constraint_user_ids or user_ids[index] in cur_user_id_node.used_ids:
+                            user_ids.append(user_ids.pop(index))
+                            scan_max -= 1
+                            constraints_len += 1
+                        else:
+                            index += 1
+
+            max_index = len(user_ids) - constraints_len
+            need_go_back = max_index == 0
+            if not need_go_back:
+                index = random.randint(0, max_index - 1)
+                user_id = user_ids.pop(index)
+                res.append(ResTreeNode(user_id))
+
+                if len(user_ids) == 0:
+                    cur_user_id_node = res[-1]
+                    constraint_user_ids = constraints.get(cur_user_id_node.cur_id, set())
+                    if res[0].cur_id in constraint_user_ids:
+                        need_go_back = True
+                    else:
+                        break
+
+            if need_go_back:
+                # return one step back
+                if len(res) == 1:
+                    # no way to go back anymore, there is no solution
+                    return None
+
+                cur_node = res.pop()
+                user_ids.append(cur_node.cur_id)
+                res[-1].used_ids.add(cur_node.cur_id)
+
+        return [node.cur_id for node in res]
+
+
+if __name__ == "__main__":
+    while True:
+        user_ids = [1, 2, 3, 4, 5, 6, 7]
+        constraints = {
+            1: {2, 3, 4, 5, 6},
+            2: {1, 3, 4, 5, 7},
+            3: {1, 2, 4, 6, 7},
+        }
+        EventUsersHandler.run_search(user_ids, constraints)
