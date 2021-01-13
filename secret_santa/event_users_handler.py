@@ -42,7 +42,9 @@ class EventUsersHandler:
                 return str(self.cur_id) + " (" + str(self.used_ids) + ")"
 
         res = []
+        iteration = 0
         while True:
+            iteration += 1
             constraints_len = 0
             if len(res) > 0:
                 cur_user_id_node = res[-1]
@@ -79,21 +81,28 @@ class EventUsersHandler:
                 # return one step back
                 if len(res) == 1:
                     # no way to go back anymore, there is no solution
+                    print(iteration)
                     return None
 
                 cur_node = res.pop()
                 user_ids.append(cur_node.cur_id)
                 res[-1].used_ids.add(cur_node.cur_id)
 
+        print(iteration)
         return [node.cur_id for node in res]
 
 
 if __name__ == "__main__":
-    while True:
-        user_ids = [1, 2, 3, 4, 5, 6, 7]
-        constraints = {
-            1: {2, 3, 4, 5, 6},
-            2: {1, 3, 4, 5, 7},
-            3: {1, 2, 4, 6, 7},
-        }
+    for iteration in range(1, 101):
+        max_id = 10000
+        user_ids = []
+        for i in range(1, max_id):
+            user_ids.append(i)
+
+        constraints = {}
+        for i in range(1, max_id):
+            constraints[i] = set()
+            for j in range(1, 4):
+                constraints[i].add((i + j) % max_id + int((i + j) / max_id))
+
         EventUsersHandler.run_search(user_ids, constraints)
